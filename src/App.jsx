@@ -470,8 +470,7 @@ export default function WeddingInvitation() {
                 </div>
                 <div className="qr-gold-border">
                   <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://your-wedding-link.com&color=4a3728&bgcolor=fffaf5&margin=4"
-                    alt="QR code for wedding invitation"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wedding-invitation-amber-sigma.vercel.app&color=4a3728&bgcolor=fffaf5&margin=4"                    alt="QR code for wedding invitation"
                     style={{ width:180, height:180, display:"block", borderRadius:"4px" }}
                   />
                 </div>
