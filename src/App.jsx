@@ -233,7 +233,81 @@ function BotanicalFrame({ style = {} }) {
   );
 }
 
-// Colors used across sections — defined once for wave consistency
+// A symmetric engraved botanical branch — a central stem with tapering
+// leaflet pairs and a terminal leaflet at the tip. Rendered three times
+// inside WaxSeal (shadow / highlight / base, each offset by a pixel or
+// two) to fake a pressed-wax engraving without needing a real image.
+function LeafSprig() {
+  const leaflets = [
+    { y: 34, s: 1.15, r: 52 },
+    { y: 18, s: 1.02, r: 46 },
+    { y: 2, s: 0.9, r: 40 },
+    { y: -14, s: 0.76, r: 34 },
+    { y: -28, s: 0.6, r: 28 },
+  ];
+  return (
+    <g strokeWidth="1.4" strokeLinecap="round">
+      <path d="M0,44 Q3,10 0,-10 Q-2,-32 0,-48" fill="none" strokeWidth="2.4" />
+      {leaflets.map((l, i) => (
+        <g key={i}>
+          <path transform={`translate(3 ${l.y}) rotate(${l.r}) scale(${l.s})`} d="M0,0 Q6,-12 0,-26 Q-6,-12 0,0 Z" />
+          <path transform={`translate(-3 ${l.y}) rotate(${-l.r}) scale(${l.s})`} d="M0,0 Q6,-12 0,-26 Q-6,-12 0,0 Z" />
+        </g>
+      ))}
+      <path transform="translate(0,-48) scale(0.55)" d="M0,0 Q6,-12 0,-26 Q-6,-12 0,0 Z" />
+    </g>
+  );
+}
+
+// A raised wax-seal medallion: an irregular turbulence-displaced disc,
+// concentric tooled rings, an engraved branch (via offset layers), and
+// a soft specular highlight — built entirely from SVG so it reads as
+// pressed wax rather than a flat gold sticker.
+function WaxSeal({ onClick, cracked }) {
+  return (
+    <button
+      type="button"
+      className={`wax-seal-big${cracked ? " crack" : ""}`}
+      onClick={onClick}
+      aria-label="Open the invitation"
+    >
+      <svg viewBox="0 0 200 200" width="100%" height="100%">
+        <defs>
+          <filter id="waxEdge" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="4" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+          <radialGradient id="waxBase" cx="35%" cy="26%" r="80%">
+            <stop offset="0%" stopColor="#f6e0a0" />
+            <stop offset="32%" stopColor="#d9ac3f" />
+            <stop offset="65%" stopColor="#a97a24" />
+            <stop offset="100%" stopColor="#5f420f" />
+          </radialGradient>
+          <radialGradient id="waxRing" cx="50%" cy="42%" r="60%">
+            <stop offset="0%" stopColor="#f8e6a8" />
+            <stop offset="100%" stopColor="#87601f" />
+          </radialGradient>
+        </defs>
+
+        <circle cx="100" cy="100" r="90" fill="url(#waxBase)" filter="url(#waxEdge)" />
+        <circle cx="100" cy="100" r="90" fill="none" stroke="#4a3410" strokeWidth="1.2" opacity="0.35" filter="url(#waxEdge)" />
+        <circle cx="100" cy="100" r="76" fill="none" stroke="url(#waxRing)" strokeWidth="3" opacity="0.65" filter="url(#waxEdge)" />
+        <circle cx="100" cy="100" r="66" fill="none" stroke="#5f420f" strokeWidth="1.3" opacity="0.4" filter="url(#waxEdge)" />
+
+        <g transform="translate(100,104)">
+          <g transform="translate(2,3)" opacity="0.5" fill="#3d2a0c" stroke="#3d2a0c"><LeafSprig /></g>
+          <g transform="translate(-1.4,-1.8)" opacity="0.55" fill="#fbe8ae" stroke="#fbe8ae"><LeafSprig /></g>
+          <g fill="#7c561d" stroke="#7c561d"><LeafSprig /></g>
+        </g>
+
+        <ellipse cx="68" cy="52" rx="36" ry="20" fill="rgba(255,255,255,0.22)" filter="url(#waxEdge)" />
+      </svg>
+      <span className="wax-seal-shine-big" />
+    </button>
+  );
+}
+
+
 const C = {
   hero:      "#fdf8f2",
   details:   "#f3ebe2",
@@ -295,115 +369,73 @@ export default function WeddingInvitation() {
           50%  { opacity: 0.5; }
           100% { transform: translateX(160%); opacity: 0; }
         }
-        @keyframes heartBeat {
-          0%, 100% { transform: translate(-50%,-50%) scale(1); }
-          50%      { transform: translate(-50%,-50%) scale(1.12); }
-        }
         @keyframes envelopeFloat {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50%      { transform: translateY(-9px) rotate(0.4deg); }
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-8px); }
         }
-        @keyframes sealShine {
-          0%   { transform: translateX(-70%) rotate(20deg); opacity: 0; }
-          15%  { opacity: 0.55; }
-          45%  { opacity: 0.55; }
-          65%  { transform: translateX(160%) rotate(20deg); opacity: 0; }
-          100% { transform: translateX(160%) rotate(20deg); opacity: 0; }
+        @keyframes sealShineBig {
+          0%   { transform: translateX(-80%) rotate(18deg); opacity: 0; }
+          15%  { opacity: 0.5; }
+          45%  { opacity: 0.5; }
+          70%  { transform: translateX(180%) rotate(18deg); opacity: 0; }
+          100% { transform: translateX(180%) rotate(18deg); opacity: 0; }
         }
-
-        .envelope {
-          animation: envelopeFloat 5.5s ease-in-out infinite;
-          filter: drop-shadow(0 26px 34px rgba(90,62,30,0.28)) drop-shadow(0 6px 10px rgba(90,62,30,0.18));
-          transition: opacity 0.6s ease 0.35s, transform 0.6s ease 0.35s;
-        }
-        .envelope.dismiss { opacity: 0; transform: scale(0.92) translateY(10px); }
-        .envelope-edge {
-          position:absolute; inset:0; border-radius:10px;
-          background: linear-gradient(155deg, #d8c9ac, #b8a483);
-          transform: translate(3px, 5px); z-index: -1;
-        }
-        .envelope-body {
-          position: absolute; inset: 0; border-radius: 10px;
-          background:
-            repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 4px),
-            linear-gradient(155deg, #ece1d0 0%, #ddd0ba 55%, #cabb9f 100%);
-          box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), inset 0 -2px 6px rgba(90,62,30,0.12);
-        }
-        .envelope-ribbon {
-          position:absolute; left:0; right:0; top:50%; height:26px; margin-top:-13px; z-index:4;
-          background: linear-gradient(180deg, #f3dd93, #d4af37 45%, #a9822d);
-          box-shadow: 0 2px 6px rgba(90,62,20,0.35), inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 3px rgba(90,60,10,0.4);
-        }
-        .envelope-ribbon::before, .envelope-ribbon::after {
-          content:''; position:absolute; top:100%; width:0; height:0;
-          border-left: 13px solid transparent; border-right: 13px solid transparent;
-        }
-        .envelope-ribbon::before { left:0; border-top:10px solid #a9822d; }
-        .envelope-ribbon::after { right:0; border-top:10px solid #a9822d; }
-        .envelope-gold-edge {
-          position: absolute; inset: 0; border-radius: 10px;
-          border: 1px solid rgba(212,175,55,0.55);
-          pointer-events: none; z-index: 6;
-        }
-        .envelope-pocket {
-          position:absolute; bottom:0; left:0; right:0; height:55%;
-          background: linear-gradient(200deg, #d9cdb6, #c0af92);
-          border-radius:0 0 10px 10px; z-index:1;
-          clip-path: polygon(0 100%, 50% 6%, 100% 100%);
-          box-shadow: inset 0 -3px 6px rgba(90,62,30,0.18);
-        }
-        .envelope-flap-left {
-          position:absolute; top:0; left:0; bottom:0; width:50%;
-          background: linear-gradient(115deg, #efe4d3, #d7cab2);
-          clip-path: polygon(0 0,100% 50%,0 100%); z-index:2;
-        }
-        .envelope-flap-right {
-          position:absolute; top:0; right:0; bottom:0; width:50%;
-          background: linear-gradient(245deg, #d9cdb6, #c4b598);
-          clip-path: polygon(100% 0,0 50%,100% 100%); z-index:2;
-        }
-        .env-lid {
-          background: linear-gradient(180deg, #f1e7d7, #ddd0ba 70%, #cabb9f);
-          box-shadow: inset 0 -2px 4px rgba(90,62,30,0.15);
-        }
-        .env-lid::after {
-          content:''; position:absolute; left:8%; right:8%; bottom:2px; height:1px;
-          background: linear-gradient(90deg, transparent, rgba(180,140,70,0.5), transparent);
-        }
-        .env-lid-shadow {
-          position:absolute; top:50%; left:6%; right:6%; height:14px;
-          background: radial-gradient(ellipse at center, rgba(90,62,30,0.22), transparent 75%);
-          opacity:0; transition: opacity 0.5s ease 0.5s; pointer-events:none;
-        }
-        .env-lid-shadow.show { opacity:1; }
-        .wax-seal {
-          position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-          width:64px; height:64px; z-index:15;
-          border-radius: 42% 58% 39% 61% / 45% 42% 58% 55%;
-          background: radial-gradient(circle at 33% 28%, #fbeeb3 0%, #e8c766 28%, #c9992f 62%, #8a6a24 100%);
-          border: 2px solid #f4de8e;
-          box-shadow:
-            0 8px 20px rgba(90,62,20,0.5),
-            inset 0 2px 3px rgba(255,255,255,0.75),
-            inset 0 -4px 7px rgba(90,60,10,0.55);
-          display:flex; align-items:center; justify-content:center;
-          overflow:hidden;
-          animation: heartBeat 2.6s ease-in-out infinite;
+        @keyframes crackSeal {
+          0%   { transform: scale(1) rotate(0deg); }
+          35%  { transform: scale(0.9) rotate(-4deg); }
+          100% { transform: scale(0.55) rotate(6deg); opacity: 0; }
         }
         @keyframes contentReveal {
           from { opacity: 0; transform: translateY(18px) scale(0.99); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .main-content { animation: contentReveal 1.1s cubic-bezier(.22,.61,.36,1); }
-        .wax-seal-shine {
-          position:absolute; top:-20%; bottom:-20%; width:34%;
-          background: linear-gradient(100deg, transparent, rgba(255,255,255,0.75), transparent);
-          animation: sealShine 4s ease-in-out infinite;
+
+        .envelope-scene {
+          min-height: 100vh; position: relative; overflow: hidden;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 2.75rem;
+          background: linear-gradient(165deg, #ecdcd9 0%, #e3cdc9 45%, #d9bfba 100%);
+          transition: opacity 0.7s ease, transform 0.7s ease;
         }
-        .wax-seal-mono {
-          position:relative; z-index:2; font-family:'Great Vibes', cursive;
-          font-size:1.55rem; color:#5b431a; text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+        .envelope-scene.dismiss { opacity: 0; transform: scale(1.03); }
+        .fold-crease {
+          position: absolute; top: -6%; width: 62%; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+          transform-origin: top center;
         }
+        .fold-left  { left: -8%;  transform: rotate(30deg); }
+        .fold-right { right: -8%; transform: rotate(-30deg); }
+        .fold-shadow {
+          position: absolute; top: 0; left: 50%; width: 70%; height: 46%;
+          transform: translateX(-50%);
+          background: radial-gradient(ellipse at top, rgba(120,80,70,0.10), transparent 70%);
+          pointer-events: none;
+        }
+
+        .wax-seal-big {
+          position: relative; width: clamp(140px, 30vw, 190px); height: clamp(140px, 30vw, 190px);
+          border: none; background: none; padding: 0; cursor: pointer;
+          animation: envelopeFloat 5s ease-in-out infinite;
+          filter: drop-shadow(0 18px 26px rgba(90,55,30,0.35)) drop-shadow(0 4px 8px rgba(90,55,30,0.2));
+          transition: transform 0.5s cubic-bezier(.36,.07,.19,.97), opacity 0.5s ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .wax-seal-big:hover { transform: scale(1.04); }
+        .wax-seal-big.crack { animation: crackSeal 0.6s ease forwards; }
+        .wax-seal-shine-big {
+          position: absolute; top: -30%; bottom: -30%; width: 30%; left: 10%;
+          background: linear-gradient(100deg, transparent, rgba(255,255,255,0.65), transparent);
+          animation: sealShineBig 4.5s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        .seal-caption {
+          font-family: 'Lato', sans-serif; font-size: 0.7rem;
+          letter-spacing: 5px; text-transform: uppercase; color: #8a6653;
+          transition: opacity 0.4s ease;
+        }
+        .seal-caption.hidden { opacity: 0; }
 
         .petal {
           position: absolute; top: -30px; pointer-events: none;
@@ -450,32 +482,6 @@ export default function WeddingInvitation() {
           font-family: 'Lato', sans-serif; font-size: 0.6rem;
           letter-spacing: 4px; text-transform: uppercase; margin-top: 8px; color: #a07c5e;
         }
-
-        .env-lid {
-          position: absolute; top: 0; left: 0; right: 0; height: 50%;
-          border-radius: 12px 12px 0 0;
-          transform-origin: top center; transform-style: preserve-3d; z-index: 10;
-          transition: transform 0.85s cubic-bezier(0.4,0,0.2,1);
-        }
-        .env-lid.open { transform: rotateX(-165deg); }
-
-        .letter {
-          position: absolute; bottom: 10px; left: 20px; right: 20px;
-          background: #fffaf5; border-radius: 6px; height: 100px;
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Great Vibes', cursive; font-size: 1.4rem; color: #8b6b4f;
-          z-index: 5;
-          transition: transform 0.85s cubic-bezier(0.4,0,0.2,1) 0.3s, opacity 0.85s ease 0.3s;
-        }
-        .letter.rising { transform: translateY(-92px); opacity: 1; }
-
-        .open-btn {
-          position: absolute; bottom: 16px; left: 0; right: 0; text-align: center;
-          font-family: 'Lato', sans-serif; font-size: 0.65rem;
-          letter-spacing: 5px; text-transform: uppercase; color: #9a7c63;
-          transition: opacity 0.4s ease;
-        }
-        .open-btn.hidden { opacity: 0; }
 
         .audio-btn {
           position: fixed; bottom: 24px; right: 24px; z-index: 100;
@@ -551,42 +557,14 @@ export default function WeddingInvitation() {
 
       {/* ── ENVELOPE ── */}
       {!revealed && (
-        <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:`linear-gradient(160deg, #f0e8dc, ${C.hero})`, position:"relative", zIndex:2 }}>
-          <div style={{ textAlign:"center" }}>
-            <p style={{ fontFamily:"'Lato', sans-serif", letterSpacing:"6px", textTransform:"uppercase", fontSize:"0.65rem", color:"#a07c5e", marginBottom:"2.5rem" }}>
-              You Are Cordially Invited
-            </p>
+        <section className={`envelope-scene${opened ? " dismiss" : ""}`}>
+          <div className="fold-crease fold-left" />
+          <div className="fold-crease fold-right" />
+          <div className="fold-shadow" />
 
-            <div className={`envelope${opened ? " dismiss" : ""}`} onClick={handleOpen} style={{
-              position:"relative", width:"320px", height:"220px",
-              cursor: opened ? "default" : "pointer",
-              perspective:"600px", transformStyle:"preserve-3d", margin:"0 auto",
-            }}>
-              <div className="envelope-edge" />
-              <div className="envelope-body" />
-              <div className="envelope-pocket" />
-              <div className="envelope-flap-left" />
-              <div className="envelope-flap-right" />
-              <div className="envelope-ribbon" />
-              <div className="envelope-gold-edge" />
-              <div className={`letter${opened ? " rising" : ""}`}>A & D</div>
-              <div className={`env-lid${opened ? " open" : ""}`}>
-                <div style={{ position:"absolute", bottom:0, left:0, right:0, top:0, clipPath:"polygon(0 0,50% 100%,100% 0)", background:"linear-gradient(200deg,#f1e7d7,#cabb9f)" }}/>
-              </div>
-              <div className={`env-lid-shadow${opened ? " show" : ""}`} />
-              {!opened && (
-                <div className="wax-seal">
-                  <div className="wax-seal-shine" />
-                  <span className="wax-seal-mono">A&amp;D</span>
-                </div>
-              )}
-              <div className={`open-btn${opened ? " hidden" : ""}`}>Tap to open</div>
-            </div>
+          <WaxSeal onClick={handleOpen} cracked={opened} />
 
-            <p style={{ marginTop:"2.5rem", fontFamily:"'Great Vibes', cursive", fontSize:"1.8rem", color:"#8b6b4f", opacity:0.8 }}>
-              Abdelrahman & Dalia
-            </p>
-          </div>
+          <p className={`seal-caption${opened ? " hidden" : ""}`}>Click the seal to open</p>
         </section>
       )}
 
