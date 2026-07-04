@@ -140,38 +140,95 @@ const petals = Array.from({ length: 9 }, (_, i) => ({
   size: `${8 + Math.random() * 8}px`,
 }));
 
+// A single layered bloom — six rounded petals around a gilded center,
+// a curved stem, two pointed leaves, and a smaller bud. Reused at each
+// corner via position/rotation/mirroring so the whole frame reads as
+// one consistent floral hand rather than scattered shapes.
+function FlowerSprig({ x, y, rotate = 0, scale = 1, mirror = false }) {
+  const transform = `translate(${x} ${y}) rotate(${rotate}) scale(${scale * (mirror ? -1 : 1)}, ${scale})`;
+  return (
+    <g transform={transform}>
+      <path d="M0,0 Q-8,42 3,78 Q11,104 1,134" stroke="url(#stemGrad)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <path d="M2,48 Q-22,41 -32,58 Q-13,70 3,57 Z" fill="url(#leafGrad)" />
+      <path d="M-1,92 Q26,86 34,104 Q13,112 -1,98 Z" fill="url(#leafGrad)" />
+      <g transform="translate(0,-8)">
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <path
+            key={a}
+            transform={`rotate(${a})`}
+            d="M0,0 C7,-15 18,-17 20,-4 C22,9 11,18 0,15 C-11,18 -22,9 -20,-4 C-18,-17 -7,-15 0,0 Z"
+            fill="url(#petalGrad)"
+            opacity="0.95"
+          />
+        ))}
+        {[30, 90, 150, 210, 270, 330].map((a) => (
+          <path
+            key={`i${a}`}
+            transform={`rotate(${a}) scale(0.6)`}
+            d="M0,0 C7,-15 18,-17 20,-4 C22,9 11,18 0,15 C-11,18 -22,9 -20,-4 C-18,-17 -7,-15 0,0 Z"
+            fill="url(#petalInnerGrad)"
+            opacity="0.9"
+          />
+        ))}
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <path
+            key={`v${a}`}
+            transform={`rotate(${a})`}
+            d="M0,0 C4,-8 9,-11 10,-4"
+            fill="none"
+            stroke="rgba(240,216,122,0.5)"
+            strokeWidth="0.6"
+          />
+        ))}
+        <circle r="5.5" fill="url(#centerGrad)" />
+      </g>
+      <g transform="translate(16,112) rotate(18)">
+        <ellipse rx="7.5" ry="10.5" fill="url(#petalGrad)" opacity="0.9" />
+        <path d="M-7.5,0 Q0,-15 7.5,0" fill="none" stroke="#6b4e3d" strokeWidth="0.8" />
+      </g>
+    </g>
+  );
+}
+
 function BotanicalFrame({ style = {} }) {
+  const corners = [
+    { x: 34, y: 26, rotate: 8, scale: 1 },
+    { x: 566, y: 26, rotate: -8, scale: 1, mirror: true },
+    { x: 30, y: 494, rotate: -175, scale: 0.72 },
+    { x: 570, y: 494, rotate: 175, scale: 0.72, mirror: true },
+  ];
   return (
     <svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg"
-      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.16, ...style }}>
-      <path d="M 20 20 Q 80 60 60 130" stroke="#6b4e3d" strokeWidth="1.2" fill="none"/>
-      <path d="M 60 130 Q 40 160 70 185" stroke="#6b4e3d" strokeWidth="1" fill="none"/>
-      <ellipse cx="45" cy="80" rx="18" ry="9" transform="rotate(-30 45 80)" fill="#8b6b4f"/>
-      <ellipse cx="30" cy="110" rx="14" ry="7" transform="rotate(-50 30 110)" fill="#8b6b4f"/>
-      <ellipse cx="68" cy="155" rx="16" ry="8" transform="rotate(20 68 155)" fill="#8b6b4f"/>
-      <ellipse cx="80" cy="185" rx="12" ry="6" transform="rotate(40 80 185)" fill="#8b5c6b"/>
-      <circle cx="62" cy="132" r="4" fill="#c8a96b"/>
-      <circle cx="72" cy="188" r="3" fill="#c8a96b"/>
-      <path d="M 580 20 Q 520 60 540 130" stroke="#6b4e3d" strokeWidth="1.2" fill="none"/>
-      <path d="M 540 130 Q 560 160 530 185" stroke="#6b4e3d" strokeWidth="1" fill="none"/>
-      <ellipse cx="555" cy="80" rx="18" ry="9" transform="rotate(30 555 80)" fill="#8b6b4f"/>
-      <ellipse cx="570" cy="110" rx="14" ry="7" transform="rotate(50 570 110)" fill="#8b6b4f"/>
-      <ellipse cx="532" cy="155" rx="16" ry="8" transform="rotate(-20 532 155)" fill="#8b6b4f"/>
-      <ellipse cx="520" cy="185" rx="12" ry="6" transform="rotate(-40 520 185)" fill="#8b5c6b"/>
-      <circle cx="538" cy="132" r="4" fill="#c8a96b"/>
-      <circle cx="528" cy="188" r="3" fill="#c8a96b"/>
-      <path d="M 20 500 Q 70 450 55 380" stroke="#6b4e3d" strokeWidth="1.2" fill="none"/>
-      <ellipse cx="38" cy="440" rx="16" ry="8" transform="rotate(20 38 440)" fill="#8b5c6b"/>
-      <ellipse cx="60" cy="400" rx="14" ry="7" transform="rotate(-10 60 400)" fill="#8b6b4f"/>
-      <circle cx="56" cy="378" r="3.5" fill="#c8a96b"/>
-      <path d="M 580 500 Q 530 450 545 380" stroke="#6b4e3d" strokeWidth="1.2" fill="none"/>
-      <ellipse cx="562" cy="440" rx="16" ry="8" transform="rotate(-20 562 440)" fill="#8b5c6b"/>
-      <ellipse cx="540" cy="400" rx="14" ry="7" transform="rotate(10 540 400)" fill="#8b6b4f"/>
-      <circle cx="544" cy="378" r="3.5" fill="#c8a96b"/>
-      <path d="M 270 15 Q 280 40 300 50 Q 320 40 330 15" stroke="#8b6b4f" strokeWidth="0.9" fill="none"/>
-      <ellipse cx="285" cy="30" rx="10" ry="5" transform="rotate(-20 285 30)" fill="#8b5c6b"/>
-      <ellipse cx="315" cy="30" rx="10" ry="5" transform="rotate(20 315 30)" fill="#8b6b4f"/>
-      <circle cx="300" cy="50" r="5" fill="#c8a96b"/>
+      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.22, ...style }}>
+      <defs>
+        <linearGradient id="petalGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c98fa0" />
+          <stop offset="55%" stopColor="#a96b7c" />
+          <stop offset="100%" stopColor="#8b5c6b" />
+        </linearGradient>
+        <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#8f7452" />
+          <stop offset="100%" stopColor="#6b4e3d" />
+        </linearGradient>
+        <radialGradient id="centerGrad">
+          <stop offset="0%" stopColor="#f0d87a" />
+          <stop offset="100%" stopColor="#b8903f" />
+        </radialGradient>
+        <linearGradient id="petalInnerGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#e2b6c2" />
+          <stop offset="100%" stopColor="#c98fa0" />
+        </linearGradient>
+        <linearGradient id="stemGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#8f7452" />
+          <stop offset="100%" stopColor="#6b4e3d" />
+        </linearGradient>
+      </defs>
+      {corners.map((c, i) => <FlowerSprig key={i} {...c} />)}
+      <g transform="translate(300,18)">
+        <path d="M -34,10 Q -14,-6 0,4 Q 14,-6 34,10" stroke="url(#stemGrad)" strokeWidth="1.3" fill="none" />
+        <g transform="translate(-20,6) scale(0.55)"><FlowerSprig x={0} y={0} rotate={-15} scale={1} /></g>
+        <g transform="translate(20,6) scale(0.55)"><FlowerSprig x={0} y={0} rotate={15} scale={1} mirror /></g>
+      </g>
     </svg>
   );
 }
@@ -242,6 +299,111 @@ export default function WeddingInvitation() {
           0%, 100% { transform: translate(-50%,-50%) scale(1); }
           50%      { transform: translate(-50%,-50%) scale(1.12); }
         }
+        @keyframes envelopeFloat {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50%      { transform: translateY(-9px) rotate(0.4deg); }
+        }
+        @keyframes sealShine {
+          0%   { transform: translateX(-70%) rotate(20deg); opacity: 0; }
+          15%  { opacity: 0.55; }
+          45%  { opacity: 0.55; }
+          65%  { transform: translateX(160%) rotate(20deg); opacity: 0; }
+          100% { transform: translateX(160%) rotate(20deg); opacity: 0; }
+        }
+
+        .envelope {
+          animation: envelopeFloat 5.5s ease-in-out infinite;
+          filter: drop-shadow(0 26px 34px rgba(90,62,30,0.28)) drop-shadow(0 6px 10px rgba(90,62,30,0.18));
+          transition: opacity 0.6s ease 0.35s, transform 0.6s ease 0.35s;
+        }
+        .envelope.dismiss { opacity: 0; transform: scale(0.92) translateY(10px); }
+        .envelope-edge {
+          position:absolute; inset:0; border-radius:10px;
+          background: linear-gradient(155deg, #d8c9ac, #b8a483);
+          transform: translate(3px, 5px); z-index: -1;
+        }
+        .envelope-body {
+          position: absolute; inset: 0; border-radius: 10px;
+          background:
+            repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 4px),
+            linear-gradient(155deg, #ece1d0 0%, #ddd0ba 55%, #cabb9f 100%);
+          box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), inset 0 -2px 6px rgba(90,62,30,0.12);
+        }
+        .envelope-ribbon {
+          position:absolute; left:0; right:0; top:50%; height:26px; margin-top:-13px; z-index:4;
+          background: linear-gradient(180deg, #f3dd93, #d4af37 45%, #a9822d);
+          box-shadow: 0 2px 6px rgba(90,62,20,0.35), inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 3px rgba(90,60,10,0.4);
+        }
+        .envelope-ribbon::before, .envelope-ribbon::after {
+          content:''; position:absolute; top:100%; width:0; height:0;
+          border-left: 13px solid transparent; border-right: 13px solid transparent;
+        }
+        .envelope-ribbon::before { left:0; border-top:10px solid #a9822d; }
+        .envelope-ribbon::after { right:0; border-top:10px solid #a9822d; }
+        .envelope-gold-edge {
+          position: absolute; inset: 0; border-radius: 10px;
+          border: 1px solid rgba(212,175,55,0.55);
+          pointer-events: none; z-index: 6;
+        }
+        .envelope-pocket {
+          position:absolute; bottom:0; left:0; right:0; height:55%;
+          background: linear-gradient(200deg, #d9cdb6, #c0af92);
+          border-radius:0 0 10px 10px; z-index:1;
+          clip-path: polygon(0 100%, 50% 6%, 100% 100%);
+          box-shadow: inset 0 -3px 6px rgba(90,62,30,0.18);
+        }
+        .envelope-flap-left {
+          position:absolute; top:0; left:0; bottom:0; width:50%;
+          background: linear-gradient(115deg, #efe4d3, #d7cab2);
+          clip-path: polygon(0 0,100% 50%,0 100%); z-index:2;
+        }
+        .envelope-flap-right {
+          position:absolute; top:0; right:0; bottom:0; width:50%;
+          background: linear-gradient(245deg, #d9cdb6, #c4b598);
+          clip-path: polygon(100% 0,0 50%,100% 100%); z-index:2;
+        }
+        .env-lid {
+          background: linear-gradient(180deg, #f1e7d7, #ddd0ba 70%, #cabb9f);
+          box-shadow: inset 0 -2px 4px rgba(90,62,30,0.15);
+        }
+        .env-lid::after {
+          content:''; position:absolute; left:8%; right:8%; bottom:2px; height:1px;
+          background: linear-gradient(90deg, transparent, rgba(180,140,70,0.5), transparent);
+        }
+        .env-lid-shadow {
+          position:absolute; top:50%; left:6%; right:6%; height:14px;
+          background: radial-gradient(ellipse at center, rgba(90,62,30,0.22), transparent 75%);
+          opacity:0; transition: opacity 0.5s ease 0.5s; pointer-events:none;
+        }
+        .env-lid-shadow.show { opacity:1; }
+        .wax-seal {
+          position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+          width:64px; height:64px; z-index:15;
+          border-radius: 42% 58% 39% 61% / 45% 42% 58% 55%;
+          background: radial-gradient(circle at 33% 28%, #fbeeb3 0%, #e8c766 28%, #c9992f 62%, #8a6a24 100%);
+          border: 2px solid #f4de8e;
+          box-shadow:
+            0 8px 20px rgba(90,62,20,0.5),
+            inset 0 2px 3px rgba(255,255,255,0.75),
+            inset 0 -4px 7px rgba(90,60,10,0.55);
+          display:flex; align-items:center; justify-content:center;
+          overflow:hidden;
+          animation: heartBeat 2.6s ease-in-out infinite;
+        }
+        @keyframes contentReveal {
+          from { opacity: 0; transform: translateY(18px) scale(0.99); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .main-content { animation: contentReveal 1.1s cubic-bezier(.22,.61,.36,1); }
+        .wax-seal-shine {
+          position:absolute; top:-20%; bottom:-20%; width:34%;
+          background: linear-gradient(100deg, transparent, rgba(255,255,255,0.75), transparent);
+          animation: sealShine 4s ease-in-out infinite;
+        }
+        .wax-seal-mono {
+          position:relative; z-index:2; font-family:'Great Vibes', cursive;
+          font-size:1.55rem; color:#5b431a; text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+        }
 
         .petal {
           position: absolute; top: -30px; pointer-events: none;
@@ -291,7 +453,7 @@ export default function WeddingInvitation() {
 
         .env-lid {
           position: absolute; top: 0; left: 0; right: 0; height: 50%;
-          background: #ddd2c2; border-radius: 12px 12px 0 0;
+          border-radius: 12px 12px 0 0;
           transform-origin: top center; transform-style: preserve-3d; z-index: 10;
           transition: transform 0.85s cubic-bezier(0.4,0,0.2,1);
         }
@@ -395,29 +557,28 @@ export default function WeddingInvitation() {
               You Are Cordially Invited
             </p>
 
-            <div onClick={handleOpen} style={{
-              position:"relative", width:"320px", height:"220px", background:"#ddd2c2",
-              borderRadius:"12px", boxShadow:"0 20px 60px rgba(100,70,40,0.25)",
+            <div className={`envelope${opened ? " dismiss" : ""}`} onClick={handleOpen} style={{
+              position:"relative", width:"320px", height:"220px",
               cursor: opened ? "default" : "pointer",
               perspective:"600px", transformStyle:"preserve-3d", margin:"0 auto",
-              transition: "box-shadow 0.4s ease",
             }}>
-              <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"55%", background:"#cfc5b4", borderRadius:"0 0 12px 12px", zIndex:1, clipPath:"polygon(0 100%, 50% 0%, 100% 100%)" }}/>
-              <div style={{ position:"absolute", top:0, left:0, bottom:0, width:"50%", background:"#d5cab9", clipPath:"polygon(0 0,100% 50%,0 100%)", zIndex:2 }}/>
-              <div style={{ position:"absolute", top:0, right:0, bottom:0, width:"50%", background:"#cfc4b3", clipPath:"polygon(100% 0,0 50%,100% 100%)", zIndex:2 }}/>
+              <div className="envelope-edge" />
+              <div className="envelope-body" />
+              <div className="envelope-pocket" />
+              <div className="envelope-flap-left" />
+              <div className="envelope-flap-right" />
+              <div className="envelope-ribbon" />
+              <div className="envelope-gold-edge" />
               <div className={`letter${opened ? " rising" : ""}`}>A & D</div>
               <div className={`env-lid${opened ? " open" : ""}`}>
-                <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"100%", clipPath:"polygon(0 0,50% 100%,100% 0)", background:"#d0c5b5" }}/>
+                <div style={{ position:"absolute", bottom:0, left:0, right:0, top:0, clipPath:"polygon(0 0,50% 100%,100% 0)", background:"linear-gradient(200deg,#f1e7d7,#cabb9f)" }}/>
               </div>
+              <div className={`env-lid-shadow${opened ? " show" : ""}`} />
               {!opened && (
-                <div style={{
-                  position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:15,
-                  width:"60px", height:"60px", borderRadius:"50%",
-                  background:"linear-gradient(135deg,#d4af37,#8b6b2f)",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:"22px", boxShadow:"0 4px 15px rgba(100,70,30,0.4)", border:"3px solid #f0d87a",
-                  animation: "heartBeat 2.2s ease-in-out infinite",
-                }}>❤</div>
+                <div className="wax-seal">
+                  <div className="wax-seal-shine" />
+                  <span className="wax-seal-mono">A&amp;D</span>
+                </div>
               )}
               <div className={`open-btn${opened ? " hidden" : ""}`}>Tap to open</div>
             </div>
@@ -431,7 +592,7 @@ export default function WeddingInvitation() {
 
       {/* ── MAIN CONTENT ── */}
       {revealed && (
-        <div>
+        <div className="main-content">
 
           {/* HERO */}
           <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"5rem 1.5rem", background:C.hero, position:"relative", overflow:"hidden" }}>
