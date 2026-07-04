@@ -259,53 +259,100 @@ function LeafSprig() {
   );
 }
 
-// A raised wax-seal medallion: an irregular turbulence-displaced disc,
-// concentric tooled rings, an engraved branch (via offset layers), and
-// a soft specular highlight — built entirely from SVG so it reads as
-// pressed wax rather than a flat gold sticker.
-function WaxSeal({ onClick, cracked }) {
+// A raised wax-seal medallion. Unlike a displaced circle, the silhouette
+// itself is an irregular hand-drawn blob (real melted wax is never a
+// perfect disc), then fine turbulence roughens the outline further and
+// a low-opacity grain overlay breaks up the flatness of the gradient.
+function WaxSeal({ onClick, phase }) {
+  const cracked = phase !== "idle";
   return (
     <button
       type="button"
-      className={`wax-seal-big${cracked ? " crack" : ""}`}
+      className={`wax-seal-big phase-${phase}`}
       onClick={onClick}
       aria-label="Open the invitation"
     >
+      <span className="seal-ambient-shadow" />
       <svg viewBox="0 0 200 200" width="100%" height="100%">
         <defs>
           <filter id="waxEdge" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="4" result="n" />
-            <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.03 0.045" numOctaves="3" seed="9" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G" />
           </filter>
-          <radialGradient id="waxBase" cx="35%" cy="26%" r="80%">
-            <stop offset="0%" stopColor="#f6e0a0" />
-            <stop offset="32%" stopColor="#d9ac3f" />
-            <stop offset="65%" stopColor="#a97a24" />
-            <stop offset="100%" stopColor="#5f420f" />
+          <filter id="waxGrain" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="grain" />
+            <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0" result="grainA" />
+            <feComposite in="grainA" in2="SourceGraphic" operator="in" result="grainClip" />
+            <feBlend in="SourceGraphic" in2="grainClip" mode="multiply" />
+          </filter>
+          <filter id="engraveBlur"><feGaussianBlur stdDeviation="1.1" /></filter>
+          <radialGradient id="waxBase" cx="34%" cy="24%" r="85%">
+            <stop offset="0%" stopColor="#caa15e" />
+            <stop offset="30%" stopColor="#a97a3e" />
+            <stop offset="60%" stopColor="#87582a" />
+            <stop offset="100%" stopColor="#4a2f15" />
           </radialGradient>
-          <radialGradient id="waxRing" cx="50%" cy="42%" r="60%">
-            <stop offset="0%" stopColor="#f8e6a8" />
-            <stop offset="100%" stopColor="#87601f" />
+          <radialGradient id="waxRing" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#d9b877" />
+            <stop offset="100%" stopColor="#5e3d1c" />
           </radialGradient>
+          <linearGradient id="branchGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#9c7238" />
+            <stop offset="100%" stopColor="#5e401c" />
+          </linearGradient>
         </defs>
 
-        <circle cx="100" cy="100" r="90" fill="url(#waxBase)" filter="url(#waxEdge)" />
-        <circle cx="100" cy="100" r="90" fill="none" stroke="#4a3410" strokeWidth="1.2" opacity="0.35" filter="url(#waxEdge)" />
-        <circle cx="100" cy="100" r="76" fill="none" stroke="url(#waxRing)" strokeWidth="3" opacity="0.65" filter="url(#waxEdge)" />
-        <circle cx="100" cy="100" r="66" fill="none" stroke="#5f420f" strokeWidth="1.3" opacity="0.4" filter="url(#waxEdge)" />
+        {/* irregular blob silhouette — drawn by hand, not a displaced circle */}
+        <path
+          d="M100,14 C126,12 152,24 166,46 C180,67 188,90 184,114
+             C180,138 165,158 142,170 C119,182 92,186 68,178
+             C44,170 24,153 16,129 C8,105 10,79 24,58
+             C38,37 58,20 82,15 C88,13 94,14 100,14 Z"
+          fill="url(#waxBase)"
+          filter="url(#waxEdge)"
+        />
+        <path
+          d="M100,14 C126,12 152,24 166,46 C180,67 188,90 184,114
+             C180,138 165,158 142,170 C119,182 92,186 68,178
+             C44,170 24,153 16,129 C8,105 10,79 24,58
+             C38,37 58,20 82,15 C88,13 94,14 100,14 Z"
+          fill="none" stroke="#3a2510" strokeWidth="1.4" opacity="0.4" filter="url(#waxEdge)"
+        />
+        <circle cx="100" cy="100" r="72" fill="none" stroke="url(#waxRing)" strokeWidth="2.6" opacity="0.4" filter="url(#waxEdge)" />
+        <circle cx="100" cy="100" r="62" fill="none" stroke="#4a2f15" strokeWidth="1.1" opacity="0.32" filter="url(#waxEdge)" />
 
+        {/* engraving: shadow (blurred + offset), base tone, then a soft lit edge — three passes read as a pressed groove */}
         <g transform="translate(100,104)">
-          <g transform="translate(2,3)" opacity="0.5" fill="#3d2a0c" stroke="#3d2a0c"><LeafSprig /></g>
-          <g transform="translate(-1.4,-1.8)" opacity="0.55" fill="#fbe8ae" stroke="#fbe8ae"><LeafSprig /></g>
-          <g fill="#7c561d" stroke="#7c561d"><LeafSprig /></g>
+          <g transform="translate(2.5,3.5)" opacity="0.5" fill="#2c1c09" stroke="#2c1c09" filter="url(#engraveBlur)"><LeafSprig /></g>
+          <g fill="url(#branchGrad)" stroke="#5e401c"><LeafSprig /></g>
+          <g transform="translate(-1,-1.3)" opacity="0.35" fill="#e4c383" stroke="#e4c383"><LeafSprig /></g>
         </g>
 
-        <ellipse cx="68" cy="52" rx="36" ry="20" fill="rgba(255,255,255,0.22)" filter="url(#waxEdge)" />
+        {/* very soft, small specular patch — restrained so it reads as wax, not plastic */}
+        <ellipse cx="66" cy="48" rx="22" ry="12" fill="rgba(255,241,214,0.16)" filter="url(#engraveBlur)" />
+
+        {/* grain overlay breaks up the gradient's smoothness */}
+        <path
+          d="M100,14 C126,12 152,24 166,46 C180,67 188,90 184,114
+             C180,138 165,158 142,170 C119,182 92,186 68,178
+             C44,170 24,153 16,129 C8,105 10,79 24,58
+             C38,37 58,20 82,15 C88,13 94,14 100,14 Z"
+          fill="url(#waxBase)" filter="url(#waxGrain)" opacity="0.55"
+        />
       </svg>
       <span className="wax-seal-shine-big" />
+      <span className="wax-seal-sparkle" />
+      {cracked && (
+        <span className="seal-particles" aria-hidden="true">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <span key={i} className="spark" style={{ "--i": i }} />
+          ))}
+        </span>
+      )}
     </button>
   );
 }
+
 
 
 const C = {
