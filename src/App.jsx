@@ -40,13 +40,39 @@ function useReveal() {
   return [ref, visible];
 }
 
-function RevealSection({ children, delay = 0, style = {} }) {
+// Lightweight scroll-progress hook (0 → 1 across the whole page)
+function useScrollY() {
+  const [y, setY] = useState(0);
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return y;
+}
+
+// Reveal wrapper — now supports "rise" (default) and "bloom" (scale + rise) styles,
+// so grids can cascade item-by-item instead of arriving as one flat block.
+function RevealSection({ children, delay = 0, style = {}, variant = "rise" }) {
   const [ref, visible] = useReveal();
+  const transforms = {
+    rise: visible ? "translateY(0)" : "translateY(40px)",
+    bloom: visible ? "translateY(0) scale(1)" : "translateY(26px) scale(0.94)",
+  };
   return (
     <div ref={ref} style={{
       opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(40px)",
-      transition: `opacity 0.9s ease ${delay}s, transform 0.9s ease ${delay}s`,
+      transform: transforms[variant],
+      transition: `opacity 0.9s cubic-bezier(.22,.61,.36,1) ${delay}s, transform 0.9s cubic-bezier(.22,.61,.36,1) ${delay}s`,
       ...style
     }}>
       {children}
@@ -54,7 +80,34 @@ function RevealSection({ children, delay = 0, style = {} }) {
   );
 }
 
-// Wave SVG divider — flips between sections
+// A divider that draws itself in (scaleX 0 → 1) once scrolled into view,
+// echoing the same "unveiling" gesture as the envelope opening.
+function AnimatedDivider({ delay = 0, symbol = "✦", style = {} }) {
+  const [ref, visible] = useReveal();
+  return (
+    <div ref={ref} className="divider" style={style}>
+      <div className="divider-line" style={{
+        transform: visible ? "scaleX(1)" : "scaleX(0)",
+        transformOrigin: "right center",
+        transition: `transform 0.9s cubic-bezier(.22,.61,.36,1) ${delay}s`,
+      }} />
+      <span style={{
+        color: "#c8a96b", fontSize: "1.1rem",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "scale(1) rotate(0deg)" : "scale(0.3) rotate(-90deg)",
+        transition: `all 0.6s cubic-bezier(.22,.61,.36,1) ${delay + 0.35}s`,
+        display: "inline-block",
+      }}>{symbol}</span>
+      <div className="divider-line" style={{
+        transform: visible ? "scaleX(1)" : "scaleX(0)",
+        transformOrigin: "left center",
+        transition: `transform 0.9s cubic-bezier(.22,.61,.36,1) ${delay}s`,
+      }} />
+    </div>
+  );
+}
+
+// Wave SVG divider — flips between sections, with a slow ambient sheen
 function Wave({ fromColor, toColor, flip = false }) {
   return (
     <div style={{ position: "relative", height: "80px", overflow: "hidden", marginTop: "-2px", zIndex: 2 }}>
@@ -69,10 +122,12 @@ function Wave({ fromColor, toColor, flip = false }) {
       >
         <rect width="1440" height="80" fill={fromColor} />
         <path
+          className="wave-path"
           d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z"
           fill={toColor}
         />
       </svg>
+      <div className="wave-sheen" />
     </div>
   );
 }
@@ -85,10 +140,10 @@ const petals = Array.from({ length: 9 }, (_, i) => ({
   size: `${8 + Math.random() * 8}px`,
 }));
 
-function BotanicalFrame() {
+function BotanicalFrame({ style = {} }) {
   return (
     <svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg"
-      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.16 }}>
+      style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.16, ...style }}>
       <path d="M 20 20 Q 80 60 60 130" stroke="#6b4e3d" strokeWidth="1.2" fill="none"/>
       <path d="M 60 130 Q 40 160 70 185" stroke="#6b4e3d" strokeWidth="1" fill="none"/>
       <ellipse cx="45" cy="80" rx="18" ry="9" transform="rotate(-30 45 80)" fill="#8b6b4f"/>
@@ -138,6 +193,7 @@ export default function WeddingInvitation() {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
   const countdown = useCountdown(TARGET_DATE);
+  const scrollY = useScrollY();
 
   const handleOpen = () => {
     setOpened(true);
@@ -171,6 +227,21 @@ export default function WeddingInvitation() {
           0%, 100% { transform: scale(1); }
           50%       { transform: scale(1.07); }
         }
+        @keyframes digitPop {
+          0%   { transform: translateY(-10px) scale(0.85); opacity: 0.4; }
+          60%  { transform: translateY(2px) scale(1.04); opacity: 1; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes sheenSlide {
+          0%   { transform: translateX(-60%); opacity: 0; }
+          20%  { opacity: 0.5; }
+          50%  { opacity: 0.5; }
+          100% { transform: translateX(160%); opacity: 0; }
+        }
+        @keyframes heartBeat {
+          0%, 100% { transform: translate(-50%,-50%) scale(1); }
+          50%      { transform: translate(-50%,-50%) scale(1.12); }
+        }
 
         .petal {
           position: absolute; top: -30px; pointer-events: none;
@@ -189,9 +260,9 @@ export default function WeddingInvitation() {
         .detail-card {
           background: #fff; border: 1px solid #e5d8c8; border-radius: 20px;
           padding: 2rem 1.5rem; text-align: center;
-          transition: transform 0.35s ease, box-shadow 0.35s ease;
+          transition: transform 0.4s cubic-bezier(.22,.61,.36,1), box-shadow 0.4s ease, border-color 0.4s ease;
         }
-        .detail-card:hover { transform: translateY(-6px); box-shadow: 0 16px 44px rgba(120,80,50,0.13); }
+        .detail-card:hover { transform: translateY(-8px) scale(1.015); box-shadow: 0 20px 48px rgba(120,80,50,0.16); border-color: #c8a96b; }
 
         .countdown-strip {
           display: flex; align-items: stretch; justify-content: center;
@@ -210,6 +281,8 @@ export default function WeddingInvitation() {
         .countdown-num {
           font-family: 'Bodoni Moda', serif;
           font-size: clamp(2.8rem, 6vw, 4rem); font-weight: 400; line-height: 1;
+          display: inline-block;
+          animation: digitPop 0.5s cubic-bezier(.22,.61,.36,1);
         }
         .countdown-label {
           font-family: 'Lato', sans-serif; font-size: 0.6rem;
@@ -256,8 +329,8 @@ export default function WeddingInvitation() {
         .divider { display: flex; align-items: center; gap: 16px; margin: 1.75rem auto; max-width: 300px; }
         .divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #c8a96b, transparent); }
 
-        .gallery-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.6s ease; }
-        .gallery-img:hover { transform: scale(1.04); }
+        .gallery-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.7s cubic-bezier(.22,.61,.36,1), filter 0.5s ease; }
+        .gallery-img:hover { transform: scale(1.06); filter: brightness(1.04); }
 
         .map-btn {
           display: inline-block; padding: 1rem 2.5rem; border-radius: 999px;
@@ -266,16 +339,30 @@ export default function WeddingInvitation() {
           text-decoration: none; transition: all 0.3s ease;
           box-shadow: 0 4px 20px rgba(139,107,79,0.3);
         }
-        .map-btn:hover { background: #6e5440; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(139,107,79,0.4); }
+        .map-btn:hover { background: #6e5440; transform: translateY(-3px); box-shadow: 0 10px 34px rgba(139,107,79,0.45); }
 
         .qr-frame {
           display: inline-flex; flex-direction: column; align-items: center;
           background: #fff; border: 1px solid #d6c2ab; border-radius: 24px;
           padding: 2rem 2rem 1.5rem;
+          transition: box-shadow 0.4s ease, transform 0.4s cubic-bezier(.22,.61,.36,1);
         }
+        .qr-frame:hover { transform: translateY(-4px); box-shadow: 0 18px 44px rgba(120,80,50,0.14); }
         .qr-initials { font-family: 'Great Vibes', cursive; font-size: 1.6rem; color: #8b6b4f; margin-bottom: 1rem; letter-spacing: 2px; }
         .qr-gold-border { border: 2px solid #c8a96b; border-radius: 12px; padding: 10px; background: #fffaf5; }
         .qr-caption { font-family: 'Lato', sans-serif; font-size: 0.6rem; letter-spacing: 4px; text-transform: uppercase; color: #a07c5e; margin-top: 1rem; }
+
+        .wave-sheen {
+          position: absolute; top: 0; left: 0; bottom: 0; width: 40%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+          animation: sheenSlide 7s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .petal, .audio-btn, .countdown-num, .wave-sheen { animation: none !important; }
+          * { transition-duration: 0.01ms !important; }
+        }
 
         @media (max-width: 640px) {
           .countdown-strip { flex-direction: column; max-width: 220px; }
@@ -313,6 +400,7 @@ export default function WeddingInvitation() {
               borderRadius:"12px", boxShadow:"0 20px 60px rgba(100,70,40,0.25)",
               cursor: opened ? "default" : "pointer",
               perspective:"600px", transformStyle:"preserve-3d", margin:"0 auto",
+              transition: "box-shadow 0.4s ease",
             }}>
               <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"55%", background:"#cfc5b4", borderRadius:"0 0 12px 12px", zIndex:1, clipPath:"polygon(0 100%, 50% 0%, 100% 100%)" }}/>
               <div style={{ position:"absolute", top:0, left:0, bottom:0, width:"50%", background:"#d5cab9", clipPath:"polygon(0 0,100% 50%,0 100%)", zIndex:2 }}/>
@@ -328,6 +416,7 @@ export default function WeddingInvitation() {
                   background:"linear-gradient(135deg,#d4af37,#8b6b2f)",
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:"22px", boxShadow:"0 4px 15px rgba(100,70,30,0.4)", border:"3px solid #f0d87a",
+                  animation: "heartBeat 2.2s ease-in-out infinite",
                 }}>❤</div>
               )}
               <div className={`open-btn${opened ? " hidden" : ""}`}>Tap to open</div>
@@ -345,17 +434,20 @@ export default function WeddingInvitation() {
         <div>
 
           {/* HERO */}
-          <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"5rem 1.5rem", background:C.hero, position:"relative" }}>
-            <BotanicalFrame />
-            <RevealSection delay={0.1} style={{ textAlign:"center", maxWidth:"680px", position:"relative", zIndex:1 }}>
+          <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"5rem 1.5rem", background:C.hero, position:"relative", overflow:"hidden" }}>
+            <BotanicalFrame style={{ transform: `translateY(${scrollY * 0.12}px)` }} />
+            <RevealSection delay={0.1} variant="bloom" style={{
+              textAlign:"center", maxWidth:"680px", position:"relative", zIndex:1,
+              transform: `translateY(${scrollY * -0.06}px)`,
+            }}>
               <p style={{ fontFamily:"'Lato', sans-serif", letterSpacing:"6px", textTransform:"uppercase", fontSize:"0.65rem", color:"#a07c5e", marginBottom:"1.5rem" }}>
                 Together with their families
               </p>
-              <div className="divider"><div className="divider-line"/><span style={{color:"#c8a96b",fontSize:"1.1rem"}}>✦</span><div className="divider-line"/></div>
+              <AnimatedDivider delay={0.15} />
               <h1 className="hero-name" style={{ fontSize:"clamp(4rem,11vw,7.5rem)", color:"#4a3728", marginBottom:"0.25rem" }}>Abdelrahman</h1>
               <div style={{ fontFamily:"'Lato', sans-serif", fontSize:"0.95rem", letterSpacing:"10px", color:"#c8a96b", margin:"0.5rem 0" }}>AND</div>
               <h1 className="hero-name" style={{ fontSize:"clamp(4rem,11vw,7.5rem)", color:"#8b5c6b" }}>Dalia</h1>
-              <div className="divider"><div className="divider-line"/><span style={{color:"#c8a96b",fontSize:"1.1rem"}}>✦</span><div className="divider-line"/></div>
+              <AnimatedDivider delay={0.15} />
               <p style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:"1.35rem", fontStyle:"italic", color:"#7a5b46", lineHeight:1.9, fontWeight:300, marginTop:"1.25rem" }}>
                 It was always you.<br/>It will always be you.
               </p>
@@ -370,23 +462,27 @@ export default function WeddingInvitation() {
 
           {/* DETAILS */}
           <section style={{ padding:"4rem 1.5rem 5rem", background:C.details }}>
-            <RevealSection delay={0.1} style={{ maxWidth:"900px", margin:"0 auto" }}>
-              <h2 className="section-heading" style={{ textAlign:"center", marginBottom:"3rem" }}>Wedding Details</h2>
+            <div style={{ maxWidth:"900px", margin:"0 auto" }}>
+              <RevealSection delay={0}>
+                <h2 className="section-heading" style={{ textAlign:"center", marginBottom:"3rem" }}>Wedding Details</h2>
+              </RevealSection>
               <div className="details-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"1.5rem" }}>
                 {[
                   { icon:"📅", title:"Date",  main:"5 June 2026",  sub:"Friday",        accent:"#4a3728" },
                   { icon:"⏰", title:"Time",  main:"7:00 PM",      sub:"Doors open at", accent:"#c8a96b" },
                   { icon:"📍", title:"Venue", main:"Romanica Hall", sub:"Cairo, Egypt",  accent:"#8b5c6b" },
                 ].map((item, i) => (
-                  <div key={i} className="detail-card" style={{ borderTop:`3px solid ${item.accent}` }}>
-                    <div style={{ fontSize:"2.2rem", marginBottom:"0.75rem" }}>{item.icon}</div>
-                    <h3 style={{ fontFamily:"'Lato', sans-serif", textTransform:"uppercase", letterSpacing:"3px", fontSize:"0.65rem", color:"#a07c5e", marginBottom:"0.6rem" }}>{item.title}</h3>
-                    <p style={{ fontSize:"0.9rem", color:"#8a6b54", lineHeight:1.6, fontWeight:300 }}>{item.sub}</p>
-                    <p style={{ fontSize:"1.35rem", color:item.accent, fontWeight:500, fontFamily:"'Bodoni Moda', serif", marginTop:"4px" }}>{item.main}</p>
-                  </div>
+                  <RevealSection key={i} delay={i * 0.15} variant="bloom">
+                    <div className="detail-card" style={{ borderTop:`3px solid ${item.accent}` }}>
+                      <div style={{ fontSize:"2.2rem", marginBottom:"0.75rem" }}>{item.icon}</div>
+                      <h3 style={{ fontFamily:"'Lato', sans-serif", textTransform:"uppercase", letterSpacing:"3px", fontSize:"0.65rem", color:"#a07c5e", marginBottom:"0.6rem" }}>{item.title}</h3>
+                      <p style={{ fontSize:"0.9rem", color:"#8a6b54", lineHeight:1.6, fontWeight:300 }}>{item.sub}</p>
+                      <p style={{ fontSize:"1.35rem", color:item.accent, fontWeight:500, fontFamily:"'Bodoni Moda', serif", marginTop:"4px" }}>{item.main}</p>
+                    </div>
+                  </RevealSection>
                 ))}
               </div>
-            </RevealSection>
+            </div>
           </section>
 
           {/* wave: details → countdown */}
@@ -407,7 +503,7 @@ export default function WeddingInvitation() {
                   { label:"Seconds", value:countdown.seconds, color:"#c8a96b" },
                 ].map((item, i) => (
                   <div key={i} className="countdown-unit">
-                    <span className="countdown-num" style={{ color:item.color }}>{String(item.value ?? 0).padStart(2,"0")}</span>
+                    <span key={item.value} className="countdown-num" style={{ color:item.color }}>{String(item.value ?? 0).padStart(2,"0")}</span>
                     <span className="countdown-label">{item.label}</span>
                   </div>
                 ))}
@@ -420,20 +516,22 @@ export default function WeddingInvitation() {
 
           {/* GALLERY */}
           <section style={{ padding:"4rem 1.5rem 5rem", background:C.gallery }}>
-            <RevealSection delay={0.1} style={{ maxWidth:"1100px", margin:"0 auto" }}>
-              <h2 className="section-heading" style={{ textAlign:"center", marginBottom:"3rem" }}>The Venue</h2>
+            <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
+              <RevealSection delay={0}>
+                <h2 className="section-heading" style={{ textAlign:"center", marginBottom:"3rem" }}>The Venue</h2>
+              </RevealSection>
               <div className="gallery-grid" style={{ display:"grid", gridTemplateColumns:"1.3fr 0.7fr 1fr", gap:"1rem", alignItems:"start" }}>
                 {[
                   { src:"https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200&auto=format&fit=crop", h:"460px" },
                   { src:"https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=1200&auto=format&fit=crop", h:"320px" },
                   { src:"https://images.unsplash.com/photo-1520854221256-17451cc331bf?q=80&w=1200&auto=format&fit=crop", h:"400px" },
                 ].map((img, i) => (
-                  <div key={i} style={{ overflow:"hidden", borderRadius:"20px", height:img.h }}>
+                  <RevealSection key={i} delay={i * 0.18} variant="bloom" style={{ overflow:"hidden", borderRadius:"20px", height:img.h }}>
                     <img src={img.src} alt="" className="gallery-img"/>
-                  </div>
+                  </RevealSection>
                 ))}
               </div>
-            </RevealSection>
+            </div>
           </section>
 
           {/* wave: gallery → map */}
@@ -457,7 +555,7 @@ export default function WeddingInvitation() {
 
           {/* QR */}
           <section style={{ padding:"4rem 1.5rem 5rem", background:C.qr, textAlign:"center" }}>
-            <RevealSection delay={0.1}>
+            <RevealSection delay={0.1} variant="bloom">
               <h2 className="section-heading" style={{ marginBottom:"0.5rem" }}>Share the Invitation</h2>
               <p style={{ fontFamily:"'Lato', sans-serif", color:"#a07c5e", fontSize:"0.65rem", letterSpacing:"3px", textTransform:"uppercase", marginBottom:"2.5rem" }}>
                 Scan to open on your device
@@ -490,11 +588,7 @@ export default function WeddingInvitation() {
                 <span style={{color:"#8b5c6b"}}> يكمل </span>
                 <span style={{color:"#4a3728"}}>فرحتنا</span>
               </p>
-              <div className="divider" style={{ margin:"1rem auto" }}>
-                <div className="divider-line"/>
-                <span style={{color:"#c8a96b"}}>❤</span>
-                <div className="divider-line"/>
-              </div>
+              <AnimatedDivider delay={0.1} symbol="❤" style={{ margin:"1rem auto" }} />
               <p style={{ fontFamily:"'Lato', sans-serif", letterSpacing:"6px", fontSize:"0.65rem", textTransform:"uppercase", color:"#9a7c62" }}>
                 Abdelrahman & Dalia · 2026
               </p>
